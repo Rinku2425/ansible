@@ -1,0 +1,19 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+
+  tasks:
+  - name: Create a directory on all Linux hosts
+    file:
+      path: /tmp/example_directory
+      state: directory
+      mode: '0755'
+      owner: root
+      group: root
+
+  - name: Ensure the directory contains a README file
+    copy:
+      dest: /tmp/example_directory/README.txt
+      content: |
+        Welcome to this directory! It was created using Ansible.

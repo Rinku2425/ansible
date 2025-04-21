@@ -1,0 +1,87 @@
+---
+- name: Deploy and configure vsftpd server
+  hosts: all
+  become: true
+  tasks:
+
+    # Detect the operating system
+    - name: Gather OS information
+      ansible.builtin.setup:
+        filter: ansible_distribution
+
+    # Install vsftpd for Ubuntu/Debian
+    - name: Install vsftpd on Ubuntu/Debian
+      apt:
+        name: vsftpd
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    # Install vsftpd for Fedora/Red Hat
+    - name: Install vsftpd on Fedora/Red Hat
+      yum:
+        name: vsftpd
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
+
+    # Create the ftpuser user if it doesn't exist
+    - name: Create ftpuser user
+      user:
+        name: ftpuser
+        state: present
+        shell: /bin/false
+
+    # Configure vsftpd settings
+    - name: Configure vsftpd
+      copy:
+        dest: /etc/vsftpd.conf
+        content: |
+          anonymous_enable=YES
+          local_enable=YES
+          write_enable=YES
+          chroot_local_user=YES
+          allow_writeable_chroot=YES
+          anon_upload_enable=NO
+          anon_mkdir_write_enable=NO
+          dirmessage_enable=YES
+          xferlog_enable=YES
+          xferlog_std_format=YES
+          log_ftp_protocol=YES
+          listen=YES
+          listen_ipv6=NO
+      notify: Restart vsftpd
+
+    # Ensure /srv/ftp directory exists
+    - name: Create /srv/ftp directory
+      file:
+        path: /srv/ftp
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Create README.txt for anonymous FTP access
+    - name: Create README.txt
+      copy:
+        dest: /srv/ftp/README.txt
+        content: "Welcome to the anonymous FTP server. Please note that uploads are disabled."
+        mode: '0444'    # Create README.txt for anonymous FTP access
+    - name: Create README.txt
+      copy:
+        dest: /srv/ftp/README.txt
+        content: "Welcome to the anonymous FTP server. Please note that uploads are disabled."
+        mode: '0444'
+
+    # Ensure directory structure for uploads
+    - name: Create upload directory for users
+      file:
+        path: /home/ftpuser/uploads
+        state: directory
+        owner: ftpuser
+        group: ftpuser
+        mode: '0755'
+
+  handlers:
+    - name: Restart vsftpd
+      service:
+        name: vsftpd
+        state: restarted
